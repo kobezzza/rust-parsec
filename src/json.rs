@@ -17,10 +17,6 @@ pub enum JsonValue {
     Object(HashMap<String, JsonValue>),
 }
 
-pub fn skip_whitespace() -> impl Parser {
-    skip(|c| c.is_whitespace())
-}
-
 pub fn null() -> impl Parser<Output = JsonValue> {
      fmt(tag("null"), |_, i| Ok((JsonValue::Null, i)))
 }
@@ -129,26 +125,25 @@ pub fn string<'a>() -> impl Parser<Output = JsonValue> {
 pub fn array() -> Box<dyn Parser<Output = JsonValue>> {
     let empty = fmt(seq!(
         tag("["),
-        skip_whitespace(),
-        tag("]"),
+        trim(tag("]")),
     ), |_, i| Ok((JsonValue::Array(vec![]), i)));
 
     let single = fmt(seq!(
         tag("["),
         rec(json),
-        tag("]"),
+        trim(tag("]")),
     ), |((_, el), ..), i| Ok((JsonValue::Array(vec![el]), i)));
 
     let multiple = fmt(seq!(
         tag("["),
 
         repeat(
-            fmt(seq!(rec(json), tag(",")), |(el, _), i| Ok((el, i))),
+            fmt(seq!(rec(json), trim(tag(","))), |(el, _), i| Ok((el, i))),
             1..
         ),
 
         rec(json),
-        tag("]"),
+        trim(tag("]")),
 
     ), |(((_, mut els), el), ..), i| Ok((JsonValue::Array({ els.push(el); els }), i)));
 
@@ -156,11 +151,11 @@ pub fn array() -> Box<dyn Parser<Output = JsonValue>> {
 }
 
 pub fn json() -> impl Parser<Output = JsonValue> {
-    or_same!(
+    trim(or_same!(
         array(),
         null(),
         boolean(),
         string(),
         number(),
-    )
+    ))
 }
