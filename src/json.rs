@@ -35,7 +35,7 @@ pub fn number() -> impl Parser<Output = JsonValue> {
 
         let int = seq!(
             opt(sign),
-            take(|ch| ch.is_digit(10))
+            take(|ch| ch.is_digit(10), 1..)
         );
 
         fmt(int, |(sign, int), i| {
@@ -61,7 +61,7 @@ pub fn number() -> impl Parser<Output = JsonValue> {
 
     let float = seq!(
         tag("."),
-        take(|ch| ch.is_digit(10)),
+        take(|ch| ch.is_digit(10), 0..),
         opt(exp)
     );
 
@@ -115,7 +115,7 @@ pub fn number() -> impl Parser<Output = JsonValue> {
 pub fn string<'a>() -> impl Parser<Output = JsonValue> {
     let parser = seq!(
         tag("\""),
-        take(|ch| ch != '"'),
+        take(|ch| ch != '"', 0..),
         tag("\""),
     );
 
@@ -190,12 +190,12 @@ pub fn object() -> Box<dyn Parser<Output = JsonValue>> {
 
 pub fn json() -> impl Parser<Output = JsonValue> {
     let json = or_same!(
-        object(),
-        array(),
         null(),
         boolean(),
         string(),
         number(),
+        object(),
+        array(),
     );
 
     trim(json)
