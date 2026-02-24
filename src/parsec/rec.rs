@@ -1,5 +1,4 @@
 use super::*;
-use crate::parsec::Parser;
 
 pub fn rec<F, P>(f: F) -> Rec<F> where
     F: Fn() -> P,

@@ -1,5 +1,4 @@
 use super::*;
-use crate::parsec::Parser;
 
 #[macro_export]
 macro_rules! seq {
