@@ -150,8 +150,65 @@ pub fn array() -> Box<dyn Parser<Output = JsonValue>> {
     Box::new(or_same!(empty, single, multiple))
 }
 
+pub fn object() -> Box<dyn Parser<Output = JsonValue>> {
+    let empty = fmt(seq!(
+        tag("{"),
+        trim(tag("}")),
+    ), |_, i| Ok((JsonValue::Object(HashMap::new()), i)));
+
+    let el = || fmt(seq!(
+        trim(string()),
+        trim(tag(":")),
+        rec(json),
+    ), |((key, _), el), i| Ok(((key, el), i)));
+
+    let single = fmt(seq!(
+        tag("{"),
+        el(),
+        trim(tag("}")),
+    ), |((_, (key, el)), ..), i| {
+        let mut map = HashMap::new();
+
+        match key {
+            JsonValue::String(key) => map.insert(key, el),
+            _ => unreachable!()
+        };
+
+        Ok((JsonValue::Object(map), i))
+    });
+
+    let multiple = fmt(seq!(
+        tag("{"),
+
+        repeat(
+            fmt(seq!(el(), trim(tag(","))), |(el, _), i| Ok((el, i))),
+            1..
+        ),
+
+        el(),
+        trim(tag("}")),
+
+    ), |(((_, mut els), el), ..), i| {
+        els.push(el);
+
+        let mut map = HashMap::with_capacity(els.len());
+
+        for (key, el) in els {
+            match key {
+                JsonValue::String(key) => map.insert(key, el),
+                _ => unreachable!()
+            };
+        }
+
+        Ok((JsonValue::Object(map), i))
+    });
+
+    Box::new(or_same!(empty, single, multiple))
+}
+
 pub fn json() -> impl Parser<Output = JsonValue> {
     trim(or_same!(
+        object(),
         array(),
         null(),
         boolean(),
