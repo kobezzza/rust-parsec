@@ -66,4 +66,9 @@ impl<'a> ParserIterator<'a> {
 
         ch
     }
+
+    pub fn change_pos(&mut self, byte_pos: usize) {
+        assert!(self.s.is_char_boundary(byte_pos));
+        self.byte_pos = byte_pos;
+    }
 }
