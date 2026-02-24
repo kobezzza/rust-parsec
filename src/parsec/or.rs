@@ -8,12 +8,12 @@ macro_rules! or {
     };
 
     ($first:expr, $second:expr $(,)?) => {
-        or($first, $second)
+        $crate::parsec::or($first, $second)
     };
 
     ($first:expr, $second:expr, $($rest:expr),+ $(,)?) => {
         or!(
-            or($first, $second),
+            $crate::parsec::or($first, $second),
             $($rest),+
         )
     };

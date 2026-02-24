@@ -8,12 +8,12 @@ macro_rules! or_same {
     };
 
     ($first:expr, $second:expr $(,)?) => {
-        or_same($first, $second)
+        $crate::parsec::or_same($first, $second)
     };
 
     ($first:expr, $second:expr, $($rest:expr),+ $(,)?) => {
         or_same!(
-            or_same($first, $second),
+            $crate::parsec::or_same($first, $second),
             $($rest),+
         )
     };

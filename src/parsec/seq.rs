@@ -8,12 +8,12 @@ macro_rules! seq {
     };
 
     ($first:expr, $second:expr $(,)?) => {
-        seq($first, $second)
+        $crate::parsec::seq($first, $second)
     };
 
     ($first:expr, $second:expr, $($rest:expr),+ $(,)?) => {
         seq!(
-            seq($first, $second),
+            $crate::parsec::seq($first, $second),
             $($rest),+
         )
     };
