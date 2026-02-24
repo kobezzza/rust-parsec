@@ -1,24 +1,18 @@
-mod tag;
-mod seq;
-mod or;
-mod or_same;
-mod take;
-mod trim;
-mod repeat;
-mod opt;
-mod rec;
-mod fmt;
+mod tag; pub use tag::*;
+mod take; pub use take::*;
+mod trim; pub use trim::*;
 
-pub use tag::*;
-pub use seq::*;
-pub use or::*;
-pub use or_same::*;
-pub use take::*;
-pub use trim::*;
-pub use repeat::*;
-pub use opt::*;
-pub use rec::*;
-pub use fmt::*;
+mod seq; pub use seq::*;
+mod or; pub use or::*;
+mod or_same; pub use or_same::*;
+
+mod repeat; pub use repeat::*;
+mod opt; pub use opt::*;
+mod lookup; pub use lookup::*;
+mod not; pub use not::*;
+
+mod rec; pub use rec::*;
+mod fmt; pub use fmt::*;
 
 use crate::iter::ParserIterator;
 
