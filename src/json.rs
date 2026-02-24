@@ -51,7 +51,7 @@ pub fn number() -> impl Parser<Output = JsonValue> {
 
     let exp = seq!(or!(tag("e"), tag("E")), int());
 
-    let exp = fmt(exp, |((..), int), i| {
+    let exp = fmt(exp, |(_, int), i| {
         let mut s = String::with_capacity(int.len() + 1);
         s.push('e');
         s.push_str(&int);
@@ -123,74 +123,56 @@ pub fn string<'a>() -> impl Parser<Output = JsonValue> {
 }
 
 pub fn array() -> Box<dyn Parser<Output = JsonValue>> {
-    let empty = fmt(seq!(
-        tag("["),
-        trim(tag("]")),
-    ), |_, i| Ok((JsonValue::Array(vec![]), i)));
-
-    let single = fmt(seq!(
-        tag("["),
+    let elems = seq!(
         rec(json),
-        trim(tag("]")),
-    ), |((_, el), ..), i| Ok((JsonValue::Array(vec![el]), i)));
 
-    let multiple = fmt(seq!(
+        trim(
+            or!(
+                seq(tag(","), lookup(not(tag("]")))),
+                lookup(tag("]"))
+            )
+        )
+    );
+
+    let array = fmt(seq!(
         tag("["),
-
-        repeat(
-            fmt(seq!(rec(json), trim(tag(","))), |(el, _), i| Ok((el, i))),
-            1..
-        ),
-
-        rec(json),
+        repeat(fmt(elems, |(el, _), i| Ok((el, i))), 0..),
         trim(tag("]")),
 
-    ), |(((_, mut els), el), ..), i| Ok((JsonValue::Array({ els.push(el); els }), i)));
+    ), |((_, els), ..), i| Ok((JsonValue::Array(els), i)));
 
-    Box::new(or_same!(empty, single, multiple))
+    Box::new(array)
 }
 
 pub fn object() -> Box<dyn Parser<Output = JsonValue>> {
-    let empty = fmt(seq!(
-        tag("{"),
-        trim(tag("}")),
-    ), |_, i| Ok((JsonValue::Object(HashMap::new()), i)));
-
     let el = || fmt(seq!(
         trim(string()),
         trim(tag(":")),
         rec(json),
     ), |((key, _), el), i| Ok(((key, el), i)));
 
-    let single = fmt(seq!(
-        tag("{"),
+    let elems = seq!(
         el(),
-        trim(tag("}")),
-    ), |((_, (key, el)), ..), i| {
-        let mut map = HashMap::new();
 
-        match key {
-            JsonValue::String(key) => map.insert(key, el),
-            _ => unreachable!()
-        };
+        trim(
+            or!(
+                seq(tag(","), lookup(not(tag("}")))),
+                lookup(tag("}"))
+            )
+        )
+    );
 
-        Ok((JsonValue::Object(map), i))
-    });
-
-    let multiple = fmt(seq!(
+    let object = fmt(seq!(
         tag("{"),
 
         repeat(
-            fmt(seq!(el(), trim(tag(","))), |(el, _), i| Ok((el, i))),
-            1..
+            fmt(elems, |(el, _), i| Ok((el, i))),
+            0..
         ),
 
-        el(),
         trim(tag("}")),
 
-    ), |(((_, mut els), el), ..), i| {
-        els.push(el);
-
+    ), |((_, els), ..), i| {
         let mut map = HashMap::with_capacity(els.len());
 
         for (key, el) in els {
@@ -203,16 +185,18 @@ pub fn object() -> Box<dyn Parser<Output = JsonValue>> {
         Ok((JsonValue::Object(map), i))
     });
 
-    Box::new(or_same!(empty, single, multiple))
+    Box::new(object)
 }
 
 pub fn json() -> impl Parser<Output = JsonValue> {
-    trim(or_same!(
+    let json = or_same!(
         object(),
         array(),
         null(),
         boolean(),
         string(),
         number(),
-    ))
+    );
+
+    trim(json)
 }
