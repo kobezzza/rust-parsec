@@ -1,5 +1,9 @@
 use std::collections::HashMap;
 
+use std::error::Error;
+use std::fmt::Display;
+use std::num::ParseFloatError;
+
 use crate::parsec::*;
 use crate::{seq, or, or_same};
 
@@ -18,17 +22,19 @@ pub fn skip_whitespace() -> impl Parser {
 }
 
 pub fn null() -> impl Parser<Output = JsonValue> {
-     fmt(tag("null"), |_| JsonValue::Null)
+     fmt(tag("null"), |_, i| Ok((JsonValue::Null, i)))
 }
 
 pub fn boolean() -> impl Parser<Output = JsonValue> {
-    fmt(or!(tag("true"), tag("false")), |(t, ..)| JsonValue::Bool(t.is_some()))
+    fmt(or!(tag("true"), tag("false")), |(t, ..), i| {
+        Ok((JsonValue::Bool(t.is_some()), i))
+    })
 }
 
 pub fn number() -> impl Parser<Output = JsonValue> {
     let int = || {
-        let sign = fmt(or!(tag("-"), tag("+")), |(minus, ..)| {
-            if minus.is_some() { "-".to_string() } else { "+".to_string() }
+        let sign = fmt(or!(tag("-"), tag("+")), |(minus, ..), i| {
+            Ok((if minus.is_some() { "-".to_string() } else { "+".to_string() }, i))
         });
 
         let int = seq!(
@@ -36,23 +42,25 @@ pub fn number() -> impl Parser<Output = JsonValue> {
             take(|ch| ch.is_digit(10))
         );
 
-        fmt(int, |(sign, int)| {
+        fmt(int, |(sign, int), i| {
             let sign = sign.unwrap_or("".to_string());
-            let mut s = String::with_capacity(sign.len() + int.len() + 1);
 
+            let mut s = String::with_capacity(sign.len() + int.len() + 1);
             s.push_str(&sign);
             s.push_str(&int);
-            s
+
+            Ok((s, i))
         })
     };
 
     let exp = seq!(or!(tag("e"), tag("E")), int());
 
-    let exp = fmt(exp, |((..), int)| {
+    let exp = fmt(exp, |((..), int), i| {
         let mut s = String::with_capacity(int.len() + 1);
         s.push('e');
         s.push_str(&int);
-        s
+
+        Ok((s, i))
     });
 
     let float = seq!(
@@ -61,21 +69,50 @@ pub fn number() -> impl Parser<Output = JsonValue> {
         opt(exp)
     );
 
-    let float = fmt(float, |((_, int), exp)| {
+    let float = fmt(float, |((_, int), exp), i| {
         let exp = exp.unwrap_or("".to_string());
         let mut s = String::with_capacity(int.len() + exp.len() + 1);
 
         s.push('.');
         s.push_str(&int);
         s.push_str(&exp);
-        s
+
+        Ok((s, i))
     });
 
     let num = seq!(int(), opt(float));
 
-    fmt(num, |(int, float)| {
+    fmt(num, |(int, float), i| {
         let num = int + &float.unwrap_or("".to_string());
-        JsonValue::Number(num.parse().unwrap_or(f64::NAN))
+
+        #[derive(Debug)]
+        pub struct ParseNumError(usize, ParseFloatError);
+
+        impl Display for ParseNumError {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{}", self.1)
+            }
+        }
+
+        impl Error for ParseNumError {
+            fn source(&self) -> Option<&(dyn Error + 'static)> {
+                Some(&self.1)
+            }
+        }
+
+        impl ParseError for ParseNumError {
+            fn position(&self) -> usize {
+                self.0
+            }
+        }
+
+        match num.parse() {
+            Ok(num) => Ok((JsonValue::Number(num), i)),
+            Err(e) => {
+                let e = Box::new(ParseNumError(i.current_pos(), e));
+                Err(e)
+            },
+        }
     })
 }
 
@@ -86,7 +123,7 @@ pub fn string<'a>() -> impl Parser<Output = JsonValue> {
         tag("\""),
     );
 
-    fmt(parser, |((_, str), ..)| JsonValue::String(str))
+    fmt(parser, |((_, str), ..), i| Ok((JsonValue::String(str), i)))
 }
 
 pub fn array() -> Box<dyn Parser<Output = JsonValue>> {
@@ -94,26 +131,26 @@ pub fn array() -> Box<dyn Parser<Output = JsonValue>> {
         tag("["),
         skip_whitespace(),
         tag("]"),
-    ), |_| JsonValue::Array(vec![]));
+    ), |_, i| Ok((JsonValue::Array(vec![]), i)));
 
     let single = fmt(seq!(
         tag("["),
         rec(json),
         tag("]"),
-    ), |((_, el), ..)| JsonValue::Array(vec![el]));
+    ), |((_, el), ..), i| Ok((JsonValue::Array(vec![el]), i)));
 
     let multiple = fmt(seq!(
         tag("["),
 
         repeat(
-            fmt(seq!(rec(json), tag(",")), |(el, _)| el),
+            fmt(seq!(rec(json), tag(",")), |(el, _), i| Ok((el, i))),
             1..
         ),
 
         rec(json),
         tag("]"),
 
-    ), |(((_, mut els), el), ..)| JsonValue::Array({ els.push(el); els }));
+    ), |(((_, mut els), el), ..), i| Ok((JsonValue::Array({ els.push(el); els }), i)));
 
     Box::new(or_same!(empty, single, multiple))
 }
