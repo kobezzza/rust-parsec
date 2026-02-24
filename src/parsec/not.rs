@@ -1,7 +1,7 @@
 mod err;
 
-use crate::parsec::not::err::NotError;
 use super::*;
+use err::NotError;
 
 pub fn not<P: Parser>(parser: P) -> Not<P> {
     Not(parser)

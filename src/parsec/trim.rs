@@ -1,7 +1,7 @@
 mod err;
 
-use crate::parsec::trim::err::TrimError;
 use super::*;
+use err::TrimError;
 
 pub fn trim<P: Parser>(parser: P) -> Trim<P> {
     Trim(parser)

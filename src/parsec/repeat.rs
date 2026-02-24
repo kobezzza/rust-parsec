@@ -3,8 +3,6 @@ mod err;
 use std::ops::{Range, Bound, RangeBounds};
 
 use super::*;
-use crate::iter::ParserIterator;
-
 pub use err::RepeatError;
 
 pub fn repeat<P: Parser>(parser: P, range: impl RangeBounds<usize>) -> Repeat<P> {
