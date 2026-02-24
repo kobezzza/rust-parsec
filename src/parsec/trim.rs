@@ -4,13 +4,11 @@ use crate::parsec::trim::err::TrimError;
 use super::*;
 
 pub fn trim<P: Parser>(parser: P) -> Trim<P> {
-    Trim { p: parser }
+    Trim(parser)
 }
 
 #[derive(Debug)]
-pub struct Trim<P> {
-    p: P
-}
+pub struct Trim<P>(P);
 
 impl<P: Parser> Parser for Trim<P> {
     type Output = P::Output;
@@ -22,7 +20,7 @@ impl<P: Parser> Parser for Trim<P> {
                 continue;
             }
 
-            return self.p.parse(i);
+            return self.0.parse(i);
         }
 
         Err(TrimError::new(i.current_pos()))
