@@ -9,7 +9,7 @@ pub fn repeat<P: Parser>(parser: P, range: impl RangeBounds<usize>) -> Repeat<P>
     let min = match range.start_bound() {
         Bound::Unbounded => 0,
         Bound::Included(&i) => i,
-        Bound::Excluded(&i) => i.saturating_add(1), // ?
+        Bound::Excluded(&i) => i.saturating_add(1) // Чтобы не было переполнения
     };
 
     let max = match range.end_bound() {
