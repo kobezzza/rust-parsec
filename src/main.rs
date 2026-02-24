@@ -5,7 +5,7 @@ mod iter;
 mod json;
 
 fn main() {
-    let a = json::json().parse("[     ]".into());
+    let a = json::json().parse(r#"[1,]"#.into());
 
     println!("{:?}", a);
 }
