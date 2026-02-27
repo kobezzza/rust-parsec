@@ -3,6 +3,10 @@ mod err;
 use super::*;
 pub use err::TagError;
 
+pub fn pass() -> Tag<&'static str> {
+    Tag { tag: "" }
+}
+
 pub fn tag<T: AsRef<str>>(tag: T) -> Tag<T> {
     Tag { tag }
 }
