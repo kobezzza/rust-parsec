@@ -5,7 +5,7 @@ mod iter;
 mod json;
 
 fn main() {
-    let a = json::json().parse(r#"[1,]"#.into());
+    let mut a = json::parse(r#"{"a": {"b": null}}"#);
 
-    println!("{:?}", a);
+    println!("{:?}", a.next());
 }
