@@ -33,40 +33,6 @@ impl<'a> ParserIterator<'a> {
         self.s[self.byte_pos..].chars().next()
     }
 
-    pub fn prev(&mut self) -> Option<char> {
-        if self.byte_pos == 0 {
-            return None;
-        }
-
-        let mut prev_byte_pos = self.byte_pos - 1;
-
-        while prev_byte_pos > 0 && !self.s.is_char_boundary(prev_byte_pos) {
-            prev_byte_pos -= 1;
-        }
-
-        let ch = self.s[prev_byte_pos..].chars().next()?;
-        self.byte_pos = prev_byte_pos;
-
-        Some(ch)
-    }
-
-    pub fn rewind(&mut self, n: usize) -> Option<char> {
-        let mut ch = None;
-
-        for _ in 0..n {
-            let prev = self.prev();
-
-            if prev.is_some() {
-                ch = prev;
-
-            } else {
-                break;
-            }
-        }
-
-        ch
-    }
-
     pub fn change_pos(&mut self, byte_pos: usize) {
         assert!(self.s.is_char_boundary(byte_pos));
         self.byte_pos = byte_pos;
