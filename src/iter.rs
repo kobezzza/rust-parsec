@@ -1,7 +1,22 @@
-#[derive(Debug, Clone)]
+mod state;
+
+pub use state::ParserState;
+
+#[derive(Debug)]
 pub struct ParserIterator<'a> {
     s: &'a str,
     byte_pos: usize,
+    state: Vec<Box<dyn ParserState>>,
+}
+
+impl<'a> Clone for ParserIterator<'a> {
+    fn clone(&self) -> Self {
+        Self {
+            s: self.s,
+            byte_pos: self.byte_pos,
+            state: self.state.iter().map(|s| s.clone_box()).collect(),
+        }
+    }
 }
 
 impl Iterator for ParserIterator<'_> {
@@ -22,7 +37,7 @@ impl<'a> From<&'a str> for ParserIterator<'a> {
 
 impl<'a> ParserIterator<'a> {
     pub fn new(s: &'a str) -> Self {
-        Self { s, byte_pos: 0 }
+        Self { s, byte_pos: 0, state: vec![] }
     }
 
     pub fn current_pos(&self) -> usize {
@@ -36,5 +51,25 @@ impl<'a> ParserIterator<'a> {
     pub fn change_pos(&mut self, byte_pos: usize) {
         assert!(self.s.is_char_boundary(byte_pos));
         self.byte_pos = byte_pos;
+    }
+
+    pub fn push_state(&mut self, state: impl ParserState) {
+        self.state.push(Box::new(state));
+    }
+
+    pub fn peek_state(&mut self) -> Option<&Box<dyn ParserState>> {
+        self.state.last()
+    }
+
+    pub fn check_state<T: ParserState + PartialEq>(&self, expected: &T) -> bool {
+        self.state
+            .last()
+            .and_then(|s| s.as_any().downcast_ref::<T>())
+            .map(|s| s == expected)
+            .unwrap_or(false)
+    }
+
+    pub fn pop_state(&mut self) -> Option<Box<dyn ParserState>> {
+        self.state.pop()
     }
 }
