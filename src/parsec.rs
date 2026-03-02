@@ -14,6 +14,8 @@ mod not; pub use not::*;
 mod rec; pub use rec::*;
 mod fmt; pub use fmt::*;
 
+mod err; pub use err::*;
+
 use crate::iter::ParserIterator;
 
 use std::error::Error;

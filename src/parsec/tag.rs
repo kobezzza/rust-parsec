@@ -35,7 +35,7 @@ impl<T: AsRef<str>> Parser for Tag<T> {
                 }
 
                 _ => {
-                    return Err(TagError::new(i.current_pos(), "Строка закончилась"))
+                    return Err(DataError::new(i.current_pos()))
                 }
             }
         }
