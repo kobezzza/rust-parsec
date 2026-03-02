@@ -44,7 +44,7 @@ pub fn key() -> impl Parser<Output = JsonValue> {
             return Err(JSONError::new(i.current_pos()));
         }
 
-        let (output, remaining) = take(|ch, escaped| !escaped && ch != '"', 0..)
+        let (output, remaining) = take(|ch, escaped| escaped || ch != '"', 0..)
             .parse(i)?;
 
         Ok((JsonValue::ObjectKey(output), remaining))

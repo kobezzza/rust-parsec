@@ -44,6 +44,10 @@ impl<'a> ParserIterator<'a> {
         self.byte_pos
     }
 
+    pub fn is_at_end(&self) -> bool {
+        self.byte_pos >= self.s.len()
+    }
+
     pub fn peek(&self) -> Option<char> {
         self.s[self.byte_pos..].chars().next()
     }
