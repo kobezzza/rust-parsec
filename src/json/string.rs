@@ -21,7 +21,8 @@ pub fn value() -> impl Parser<Output = JsonValue> {
             return Err(JSONError::new(i.current_pos()))
         }
 
-        let (output, remaining) = take(|ch| ch != '"', 0..).parse(i)?;
+        let (output, remaining) = take(|ch, escaped| !escaped && ch != '"', 0..)
+            .parse(i)?;
 
         Ok((JsonValue::String(output), remaining))
     })
@@ -30,7 +31,7 @@ pub fn value() -> impl Parser<Output = JsonValue> {
 pub fn string() -> impl Parser<Output = JsonValue> {
     let parser = seq!(
         tag("\""),
-        take(|ch| ch != '"', 0..),
+        take(|ch, escaped| !escaped && ch != '"', 0..),
         tag("\""),
     );
 

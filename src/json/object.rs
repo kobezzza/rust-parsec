@@ -24,9 +24,13 @@ pub fn next_value() -> impl Parser<Output = JsonValue> {
 
 pub fn start_end_key() -> impl Parser<Output = JsonValue> {
     fmt(tag("\""), |_, mut i| {
+        if !i.check_state(&JsonValue::StartObject) {
+            return Err(JSONError::new(i.current_pos()))
+        }
+
         if i.check_state(&JsonValue::StartObjectKey) {
             i.pop_state();
-            return Ok((JsonValue::EndObjectKey, i))
+            return Ok((JsonValue::EndObjectKey, i));
         }
 
         i.push_state(JsonValue::StartObjectKey);
@@ -37,10 +41,11 @@ pub fn start_end_key() -> impl Parser<Output = JsonValue> {
 pub fn key() -> impl Parser<Output = JsonValue> {
     fmt(pass(), |_, i| {
         if !i.check_state(&JsonValue::StartObjectKey) {
-            return Err(JSONError::new(i.current_pos()))
+            return Err(JSONError::new(i.current_pos()));
         }
 
-        let (output, remaining) = take(|ch| ch != '"', 0..).parse(i)?;
+        let (output, remaining) = take(|ch, escaped| !escaped && ch != '"', 0..)
+            .parse(i)?;
 
         Ok((JsonValue::ObjectKey(output), remaining))
     })

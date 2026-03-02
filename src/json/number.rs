@@ -15,7 +15,7 @@ pub fn number() -> impl Parser<Output = JsonValue> {
 
         let int = seq!(
             opt(sign),
-            take(|ch| ch.is_digit(10), 1..)
+            take(|ch, _| ch.is_digit(10), 1..)
         );
 
         fmt(int, |(sign, int), i| {
@@ -41,7 +41,7 @@ pub fn number() -> impl Parser<Output = JsonValue> {
 
     let float = seq!(
         tag("."),
-        take(|ch| ch.is_digit(10), 0..),
+        take(|ch, _| ch.is_digit(10), 0..),
         opt(exp)
     );
 

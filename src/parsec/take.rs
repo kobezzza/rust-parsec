@@ -5,7 +5,7 @@ use std::ops::{Range, Bound, RangeBounds};
 use super::*;
 use err::TakeError;
 
-pub fn take<P: Fn(char) -> bool>(pred: P, range: impl RangeBounds<usize>) -> Take<P> {
+pub fn take<P: Fn(char, bool) -> bool>(pred: P, range: impl RangeBounds<usize>) -> Take<P> {
     let min = match range.start_bound() {
         Bound::Unbounded => 0,
         Bound::Included(&i) => i,
@@ -31,7 +31,7 @@ pub struct Take<P> {
     range: Range<usize>
 }
 
-impl<P: Fn(char) -> bool> Parser for Take<P> {
+impl<P: Fn(char, bool) -> bool> Parser for Take<P> {
     type Output = String;
 
     fn parse<'a>(&self, mut i: ParserIterator<'a>) -> ParserResult<'a, Self::Output> {
@@ -39,17 +39,26 @@ impl<P: Fn(char) -> bool> Parser for Take<P> {
 
         let mut result = String::new();
 
+        let mut escaped = false;
+
         while
             counter < self.range.end &&
             let Some(ch) = i.peek()
         {
-            if (self.pred)(ch) {
+            if (self.pred)(ch, escaped) {
                 result.push(ch);
                 i.next();
                 counter += 1;
 
             } else {
                 break;
+            }
+
+            if escaped {
+                escaped = false;
+
+            } else if ch == '\\' {
+                escaped = true;
             }
         }
 
