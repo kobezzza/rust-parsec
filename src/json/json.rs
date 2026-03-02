@@ -9,10 +9,13 @@ use super::*;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum JsonValue {
+    StartString,
+    String(String),
+    EndString,
+
     Null,
     Bool(bool),
     Number(f64),
-    String(String),
 
     StartArray,
     ExpectedArrayElem,
@@ -64,10 +67,15 @@ pub fn json() -> impl Parser<Output = JsonValue> {
 
 pub fn json_stream() -> impl Parser<Output = JsonValue> {
     let json = or_same!(
+        object::start_end_key(),
+        object::key(),
+
+        string::start_end(),
+        string::value(),
+
         null::null(),
         boolean::boolean(),
         object::key(),
-        string::string(),
         number::number(),
 
         array::start(),
@@ -77,6 +85,7 @@ pub fn json_stream() -> impl Parser<Output = JsonValue> {
 
         object::start(),
         object::end(),
+
         object::next_key(),
         object::next_value(),
         object::value(),
