@@ -11,7 +11,7 @@ use std::collections::VecDeque;
 use crate::iter::ParserIterator;
 use crate::parsec::{ParseError, Parser, ParserResult};
 
-pub fn parse<'a, T: Into<ParserIterator<'a>>>(i: T) -> ParserResult<'a, json::JsonValue> {
+pub fn parse<'a, T: Into<ParserIterator<'a>>>(i: T) -> ParserResult<'a, JsonValue> {
     json::json().parse(i.into())
 }
 
@@ -32,7 +32,7 @@ impl<'a> StreamParser<'a> {
 }
 
 impl<'a> Iterator for StreamParser<'a> {
-    type Item = Result<json::JsonValue, Box<dyn ParseError>>;
+    type Item = Result<JsonValue, Box<dyn ParseError>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let mut store = std::mem::replace(&mut self.store, None)?;
