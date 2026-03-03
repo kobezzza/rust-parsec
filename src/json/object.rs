@@ -114,7 +114,7 @@ pub fn object() -> Box<dyn Parser<Output = JsonValue>> {
 
         trim(
             or!(
-                seq(tag(","), lookup(not(tag("}")))),
+                seq(tag(","), lookup(not(trim(tag("}"))))),
                 lookup(tag("}"))
             )
         )
