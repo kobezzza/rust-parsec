@@ -50,7 +50,7 @@ pub fn key() -> impl Parser<Output = JsonValue> {
 }
 
 pub fn next_value() -> impl Parser<Output = JsonValue> {
-    fmt(tag(":"), |_, mut i| {
+    fmt(tag(":"), |_, i| {
         if !i.check_state(&JsonValue::ExpectedObjectValue) {
             return Err(JSONError::new(i.current_pos()))
         }
