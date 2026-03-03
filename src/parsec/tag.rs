@@ -29,7 +29,7 @@ impl<T: AsRef<str>> Parser for Tag<T> {
                         i.next();
 
                     } else {
-                        let msg = format!("Символ в строке {} не соответствует ожидаемому символу {} тега", i.current_pos(), t);
+                        let msg = format!("Символ в позиции {} не соответствует ожидаемому символу {} тега", i.current_pos(), t);
                         return Err(TagError::new(i.current_pos(), msg));
                     }
                 }
