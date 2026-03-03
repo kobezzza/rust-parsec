@@ -1,8 +1,4 @@
-use crate::parsec::*;
-
-mod parsec;
-mod iter;
-mod json;
+use rust_parsec::json;
 
 fn main() {
     let mut a = json::parse_stream(r#"{"a":"#);

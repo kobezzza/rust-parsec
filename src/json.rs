@@ -4,7 +4,7 @@ mod number;
 mod string;
 mod array;
 mod object;
-mod json;
+mod json; pub use json::JsonValue;
 mod err;
 
 use std::collections::VecDeque;
