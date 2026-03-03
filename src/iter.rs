@@ -61,6 +61,10 @@ impl<'a> ParserIterator<'a> {
         self.state.push(Box::new(state));
     }
 
+    pub fn push_boxed_state(&mut self, state: Box<dyn ParserState>) {
+        self.state.push(state);
+    }
+
     pub fn peek_state(&mut self) -> Option<&Box<dyn ParserState>> {
         self.state.last()
     }

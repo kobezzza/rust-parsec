@@ -68,6 +68,7 @@ pub fn json() -> impl Parser<Output = JsonValue> {
 pub fn json_stream() -> impl Parser<Output = JsonValue> {
     let json = or_same!(
         object::start_end_key(),
+        object::value(),
         object::key(),
 
         string::start_end(),
@@ -88,7 +89,6 @@ pub fn json_stream() -> impl Parser<Output = JsonValue> {
 
         object::next_key(),
         object::next_value(),
-        object::value(),
     );
 
     trim(json)

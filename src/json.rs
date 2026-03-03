@@ -7,32 +7,66 @@ mod object;
 mod json;
 mod err;
 
+use std::collections::VecDeque;
 use crate::iter::ParserIterator;
-use crate::parsec::{Parser, ParserResult};
+use crate::parsec::{ParseError, Parser, ParserResult};
 
 pub fn parse<'a, T: Into<ParserIterator<'a>>>(i: T) -> ParserResult<'a, json::JsonValue> {
     json::json().parse(i.into())
 }
 
 pub fn parse_stream<'a, T: Into<ParserIterator<'a>>>(i: T) -> StreamParser<'a> {
-    StreamParser { i: Some(i.into()) }
+    let mut store = VecDeque::new();
+    store.push_back(i.into());
+    StreamParser { store: Some(store) }
 }
 
 pub struct StreamParser<'a> {
-    i: Option<ParserIterator<'a>>,
+    store: Option<VecDeque<ParserIterator<'a>>>,
+}
+
+impl<'a> StreamParser<'a> {
+    pub fn push_data<T: Into<ParserIterator<'a>>>(&mut self, data: T) {
+        self.store.as_mut().map(|i| i.push_back(data.into()));
+    }
 }
 
 impl<'a> Iterator for StreamParser<'a> {
-    type Item = json::JsonValue;
+    type Item = Result<json::JsonValue, Box<dyn ParseError>>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let i = std::mem::replace(&mut self.i, None)?;
+        let mut store = std::mem::replace(&mut self.store, None)?;
 
-        if let Ok((output, remaining)) = json::json_stream().parse(i) {
-            self.i = Some(remaining);
-            return Some(output)
+        let mut head = store.pop_front()?;
+
+        if head.is_at_end() {
+            if store.is_empty() {
+                store.push_front(head);
+                self.store = Some(store);
+                return None;
+            }
+
+            store.front_mut().map(|iter| {
+                while let Some(state) = head.pop_state() {
+                    iter.push_boxed_state(state);
+                }
+
+            });
+
+            self.store = Some(store);
+            return self.next();
         }
 
-        None
+        match json::json_stream().parse(head) {
+            Ok((output, remaining)) => {
+                store.push_front(remaining);
+                self.store = Some(store);
+                Some(Ok(output))
+            },
+
+            Err(e) => {
+                Some(Err(e))
+            }
+        }
     }
 }

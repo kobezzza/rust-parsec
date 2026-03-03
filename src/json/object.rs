@@ -14,23 +14,17 @@ pub fn start() -> impl Parser<Output = JsonValue> {
     })
 }
 
-pub fn next_key() -> impl Parser<Output = JsonValue> {
-    fmt(tag(","), |_, i| Ok((JsonValue::ExpectedObjectKey, i)))
-}
-
-pub fn next_value() -> impl Parser<Output = JsonValue> {
-    fmt(tag(":"), |_, i| Ok((JsonValue::ExpectedObjectValue, i)))
-}
-
 pub fn start_end_key() -> impl Parser<Output = JsonValue> {
     fmt(tag("\""), |_, mut i| {
-        if !i.check_state(&JsonValue::StartObject) {
-            return Err(JSONError::new(i.current_pos()))
+        if i.check_state(&JsonValue::EndObjectKey) {
+            i.pop_state(); // EndObjectKey
+            i.pop_state(); // StartObjectKey
+            i.push_state(JsonValue::ExpectedObjectValue);
+            return Ok((JsonValue::EndObjectKey, i));
         }
 
-        if i.check_state(&JsonValue::StartObjectKey) {
-            i.pop_state();
-            return Ok((JsonValue::EndObjectKey, i));
+        if !i.check_state(&JsonValue::StartObject) {
+            return Err(JSONError::new(i.current_pos()))
         }
 
         i.push_state(JsonValue::StartObjectKey);
@@ -44,22 +38,55 @@ pub fn key() -> impl Parser<Output = JsonValue> {
             return Err(JSONError::new(i.current_pos()));
         }
 
-        let (output, remaining) = take(|ch, escaped| escaped || ch != '"', 0..)
+        let (output, mut remaining) = take(|ch, escaped| escaped || ch != '"', 0..)
             .parse(i)?;
+
+        if !remaining.is_at_end() {
+            remaining.push_state(JsonValue::EndObjectKey);
+        }
 
         Ok((JsonValue::ObjectKey(output), remaining))
     })
 }
 
+pub fn next_value() -> impl Parser<Output = JsonValue> {
+    fmt(tag(":"), |_, mut i| {
+        if !i.check_state(&JsonValue::ExpectedObjectValue) {
+            return Err(JSONError::new(i.current_pos()))
+        }
+
+        Ok((JsonValue::ExpectedObjectValue, i))
+    })
+}
+
 pub fn value() -> impl Parser<Output = JsonValue> {
-    fmt(pass(), |_, i| {
+    fmt(pass(), |_, mut i| {
+        if !i.check_state(&JsonValue::ExpectedObjectValue) {
+            return Err(JSONError::new(i.current_pos()))
+        }
+
+        i.pop_state(); // ExpectedObjectValue
+        i.pop_state(); // StartObject
+
+        let (output, mut remaining) = rec(json_stream).parse(i)?;
+
+        remaining.push_state(JsonValue::StartObject);
+
+        if remaining.is_at_end() {
+            remaining.push_state(JsonValue::ExpectedObjectValue);
+        }
+
+        Ok((JsonValue::ObjectValue(Box::new(output)), remaining))
+    })
+}
+
+pub fn next_key() -> impl Parser<Output = JsonValue> {
+    fmt(tag(","), |_, i| {
         if !i.check_state(&JsonValue::StartObject) {
             return Err(JSONError::new(i.current_pos()))
         }
 
-        let (output, remaining) = rec(json_stream).parse(i)?;
-
-        Ok((JsonValue::ObjectValue(Box::new(output)), remaining))
+        Ok((JsonValue::ExpectedObjectKey, i))
     })
 }
 
@@ -74,7 +101,6 @@ pub fn end() -> impl Parser<Output = JsonValue> {
         Ok((JsonValue::EndObject, i))
     })
 }
-
 
 pub fn object() -> Box<dyn Parser<Output = JsonValue>> {
     let el = || fmt(seq!(
