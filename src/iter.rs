@@ -61,8 +61,12 @@ impl<'a> ParserIterator<'a> {
         self.state.push(Box::new(state));
     }
 
-    pub fn push_boxed_state(&mut self, state: Box<dyn ParserState>) {
-        self.state.push(state);
+    pub fn take_state(&mut self) -> Vec<Box<dyn ParserState>> {
+        std::mem::replace(&mut self.state, vec![])
+    }
+
+    pub fn replace_state(&mut self, state: Vec<Box<dyn ParserState>>) -> Vec<Box<dyn ParserState>> {
+        std::mem::replace(&mut self.state, state)
     }
 
     pub fn peek_state(&mut self) -> Option<&Box<dyn ParserState>> {

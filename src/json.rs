@@ -47,10 +47,7 @@ impl<'a> Iterator for StreamParser<'a> {
             }
 
             store.front_mut().map(|iter| {
-                while let Some(state) = head.pop_state() {
-                    iter.push_boxed_state(state);
-                }
-
+                iter.replace_state(head.take_state());
             });
 
             self.store = Some(store);
